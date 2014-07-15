@@ -70,6 +70,10 @@ define $(PKG)_BUILD
     rm -rf '$(PREFIX)/$(TARGET)/qt'
     $(MAKE) -C '$(1)' -j 1 install
 
+    # lrelease (from linguist) needed to prepare translation files
+    $(MAKE) -C '$(1)/tools/linguist/lrelease' -j '$(JOBS)' install
+    ln -fs '$(PREFIX)/$(TARGET)/bin/lrelease' '$(PREFIX)/bin/$(TARGET)-lrelease'
+
     cd '$(1)/tools/assistant' && '$(1)/bin/qmake' assistant.pro
     $(MAKE) -C '$(1)/tools/assistant' -j '$(JOBS)' install
 
