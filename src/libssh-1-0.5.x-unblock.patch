@@ -1,0 +1,30 @@
+This file is part of MXE.
+See index.html for further information.
+
+Contains a fix for not blocking polling
+http://code.x2go.org/releases/libssh/libssh-0.5.x-unblock.patch
+
+don't block poll if timeout 0
+
+--- libssh-0.5.4.orig/src/channels.c
++++ libssh-0.5.4/src/channels.c
+@@ -1769,7 +1769,10 @@ static ssh_channel ssh_channel_accept(ss
+ 
+   for (t = timeout_ms; t >= 0; t -= 50)
+   {
+-    ssh_handle_packets(session, 50);
++    if(!timeout_ms)
++      ssh_handle_packets(session, 0);
++    else
++      ssh_handle_packets(session, 50);
+ 
+     if (session->ssh_message_list) {
+       iterator = ssh_list_get_iterator(session->ssh_message_list);
+@@ -2094,6 +2097,7 @@ error:
+ }
+ 
+ /**
++
+  * @brief Set environment variables.
+  *
+  * @param[in]  channel  The channel to set the environment variables.

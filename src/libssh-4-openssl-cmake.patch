@@ -1,0 +1,55 @@
+This file is part of MXE.
+See index.html for further information.
+
+Contains a fix for the cmake FindOpenSSL module
+which make it possible to use pkg-config for
+mingw builds.
+
+diff --git a/cmake/Modules/FindOpenSSL.cmake b/cmake/Modules/FindOpenSSL.cmake
+index 565190c..d48207f 100644
+--- a/cmake/Modules/FindOpenSSL.cmake
++++ b/cmake/Modules/FindOpenSSL.cmake
+@@ -29,12 +29,10 @@ if (OPENSSL_LIBRARIES AND OPENSSL_INCLUDE_DIRS)
+     set(OPENSSL_FOUND TRUE)
+ else (OPENSSL_LIBRARIES AND OPENSSL_INCLUDE_DIRS)
+ 
+-    if (UNIX)
+-        find_package(PkgConfig)
+-        if (PKG_CONFIG_FOUND)
+-            pkg_check_modules(_OPENSSL openssl)
+-        endif (PKG_CONFIG_FOUND)
+-    endif (UNIX)
++    find_package(PkgConfig)
++    if (PKG_CONFIG_FOUND)
++        pkg_check_modules(_OPENSSL openssl)
++    endif (PKG_CONFIG_FOUND)
+ 
+     # http://www.slproweb.com/products/Win32OpenSSL.html
+     set(_OPENSSL_ROOT_HINTS
+@@ -75,7 +73,7 @@ else (OPENSSL_LIBRARIES AND OPENSSL_INCLUDE_DIRS)
+     set(OPENSSL_INCLUDE_DIRS ${OPENSSL_INCLUDE_DIR})
+     mark_as_advanced(OPENSSL_INCLUDE_DIRS)
+ 
+-    if (WIN32 AND NOT CYGWIN)
++    if (WIN32 AND NOT CYGWIN AND NOT PKG_CONFIG_FOUND)
+         # MINGW should go here too
+         if (MSVC)
+             # /MD and /MDd are the standard values - if someone wants to use
+@@ -136,7 +134,7 @@ else (OPENSSL_LIBRARIES AND OPENSSL_INCLUDE_DIRS)
+ 
+             mark_as_advanced(SSL_EAY_DEBUG SSL_EAY_RELEASE)
+             mark_as_advanced(LIB_EAY_DEBUG LIB_EAY_RELEASE)
+-        elseif (MINGW)
++        elseif (MINGW AND NOT PKG_CONFIG_FOUND)
+             # same player, for MingW
+             find_library(LIB_EAY
+                 NAMES
+@@ -173,7 +171,7 @@ else (OPENSSL_LIBRARIES AND OPENSSL_INCLUDE_DIRS)
+             mark_as_advanced(SSL_EAY LIB_EAY)
+             set(OPENSSL_LIBRARIES ${SSL_EAY} ${LIB_EAY})
+         endif(MSVC)
+-    else (WIN32 AND NOT CYGWIN)
++    else (WIN32 AND NOT CYGWIN AND NOT PKG_CONFIG_FOUND)
+         find_library(OPENSSL_SSL_LIBRARIES
+             NAMES
+                 ssl

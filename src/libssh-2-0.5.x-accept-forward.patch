@@ -1,0 +1,85 @@
+This file is part of MXE.
+See index.html for further information.
+
+Contains fix for forwarding sessions
+http://code.x2go.org/releases/libssh/libssh-0.5.x-accept-forward.patch
+
+Index: libssh-0.5.4.ready/include/libssh/libssh.h
+===================================================================
+--- libssh-0.5.4.ready.orig/include/libssh/libssh.h	2014-01-13 11:48:50.000000000 +0100
++++ libssh-0.5.4.ready/include/libssh/libssh.h	2014-01-13 11:48:50.000000000 +0100
+@@ -371,6 +371,7 @@
+ LIBSSH_API char *ssh_dirname (const char *path);
+ LIBSSH_API int ssh_finalize(void);
+ LIBSSH_API ssh_channel ssh_forward_accept(ssh_session session, int timeout_ms);
++LIBSSH_API ssh_channel ssh_channel_accept_forward(ssh_session session, int timeout_ms, int *destination_port);
+ LIBSSH_API int ssh_forward_cancel(ssh_session session, const char *address, int port);
+ LIBSSH_API int ssh_forward_listen(ssh_session session, const char *address, int port, int *bound_port);
+ LIBSSH_API void ssh_free(ssh_session session);
+Index: libssh-0.5.4.ready/src/channels.c
+===================================================================
+--- libssh-0.5.4.ready.orig/src/channels.c	2014-01-13 11:48:50.000000000 +0100
++++ libssh-0.5.4.ready/src/channels.c	2014-01-13 11:48:50.000000000 +0100
+@@ -1755,7 +1755,7 @@
+ }
+ 
+ static ssh_channel ssh_channel_accept(ssh_session session, int channeltype,
+-    int timeout_ms) {
++    int timeout_ms, int *destination_port) {
+ #ifndef _WIN32
+   static const struct timespec ts = {
+     .tv_sec = 0,
+@@ -1779,6 +1779,10 @@
+             ssh_message_subtype(msg) == channeltype) {
+           ssh_list_remove(session->ssh_message_list, iterator);
+           channel = ssh_message_channel_request_open_reply_accept(msg);
++          if(destination_port) {
++            *destination_port=msg->channel_request_open.destination_port;
++          }
++
+           ssh_message_free(msg);
+           return channel;
+         }
+@@ -1809,7 +1813,7 @@
+  *                      the server.
+  */
+ ssh_channel ssh_channel_accept_x11(ssh_channel channel, int timeout_ms) {
+-  return ssh_channel_accept(channel->session, SSH_CHANNEL_X11, timeout_ms);
++  return ssh_channel_accept(channel->session, SSH_CHANNEL_X11, timeout_ms, NULL);
+ }
+ 
+ /**
+@@ -1951,7 +1955,7 @@
+       break;
+ 
+   }
+-
++  session->global_req_state = SSH_CHANNEL_REQ_STATE_NONE;
+   leave_function();
+   return rc;
+ error:
+@@ -2027,7 +2031,23 @@
+  *         the server
+  */
+ ssh_channel ssh_forward_accept(ssh_session session, int timeout_ms) {
+-  return ssh_channel_accept(session, SSH_CHANNEL_FORWARDED_TCPIP, timeout_ms);
++  return ssh_channel_accept(session, SSH_CHANNEL_FORWARDED_TCPIP, timeout_ms, NULL);
++}
++
++/**
++ * @brief Accept an incoming TCP/IP forwarding channel and get information
++ * about incomming connection
++ * @param[in]  session    The ssh session to use.
++ *
++ * @param[in]  timeout_ms A timeout in milliseconds.
++ *
++ * @param[in]  destination_port A pointer to destination port or NULL.
++ *
++ * @return Newly created channel, or NULL if no incoming channel request from
++ *         the server
++ */
++ssh_channel ssh_channel_accept_forward(ssh_session session, int timeout_ms, int* destination_port) {
++  return ssh_channel_accept(session, SSH_CHANNEL_FORWARDED_TCPIP, timeout_ms, destination_port);
+ }
+ 
+ /**
