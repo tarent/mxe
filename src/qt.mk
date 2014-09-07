@@ -31,7 +31,7 @@ define $(PKG)_BUILD
         -device-option CROSS_COMPILE=$(TARGET)- \
         -device-option PKG_CONFIG='$(TARGET)-pkg-config' \
         -force-pkg-config \
-        -release \
+        -debug-and-release \
         -exceptions \
         -static \
         -prefix '$(PREFIX)/$(TARGET)/qt' \
